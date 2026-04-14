@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sete Além</title>
     <style>
         :root {
@@ -33,6 +34,7 @@
             margin: 0;
             overflow: hidden;
             user-select: none;
+            touch-action: manipulation;
             animation: monitor-flicker 0.15s infinite;
         }
 
@@ -47,6 +49,22 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 20000;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 24px 0; overflow-y: auto;
+        }
+        .name-entry {
+            display: flex; flex-direction: column; gap: 8px;
+            width: min(420px, 90vw); margin: 10px auto 24px;
+        }
+        .name-entry label {
+            color: #aaa; font-size: 0.82rem; letter-spacing: 1px; text-transform: uppercase;
+        }
+        #playerNameInput {
+            background: #050505; border: 1px solid #333; color: #f2f2f2;
+            padding: 12px 14px; font-family: 'Courier New', monospace;
+            font-size: 1rem; text-align: center; box-shadow: 0 0 20px rgba(179, 0, 0, 0.12);
+        }
+        #playerNameInput:focus {
+            outline: none; border-color: var(--blood); box-shadow: 0 0 20px rgba(179, 0, 0, 0.3);
         }
         .portrait-container { display: flex; gap: 30px; margin-top: 40px; }
         .portrait {
@@ -120,6 +138,7 @@
             display: grid; grid-template-columns: repeat(12, 45px); grid-template-rows: repeat(12, 45px);
             gap: 1px; border: 8px solid #1a1a1a; background: #000; position: relative;
             box-shadow: 0 0 100px rgba(179, 0, 0, 0.2);
+            touch-action: manipulation;
         }
 
         #arena::after {
@@ -134,7 +153,11 @@
             display: flex; align-items: center; justify-content: center;
             font-size: 1.6rem; border: 1px solid #151515; z-index: 1;
             position: relative;
+            cursor: pointer;
+            transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
         }
+        .tile.reachable-tile { background: rgba(0, 80, 110, 0.35); box-shadow: inset 0 0 12px rgba(0, 180, 255, 0.18); }
+        .tile.path-tile { background: rgba(255, 215, 0, 0.18); box-shadow: inset 0 0 12px rgba(255, 215, 0, 0.35), 0 0 10px rgba(255, 215, 0, 0.12); transform: scale(0.97); }
 
         .tile.smoke-area { background: #1a1a1a; }
         .tile.smoke-area::before {
@@ -153,6 +176,7 @@
             font-size: 1.6rem; z-index: 10;
             transition: top 0.3s ease, left 0.3s ease;
             text-shadow: 0 0 5px #000;
+            pointer-events: none;
         }
         
         .entity.shake-anim { animation: entityShake 0.3s; }
@@ -205,9 +229,61 @@
             100% { opacity: 0; transform: translateY(-60px) scale(1.3); } 
         }
 
+        .move-echo {
+            position: absolute; width: 45px; height: 45px; z-index: 12; pointer-events: none;
+            border: 2px solid rgba(0, 255, 255, 0.8); border-radius: 12px;
+            box-shadow: 0 0 18px rgba(0, 255, 255, 0.45);
+            animation: moveEchoAnim 0.45s forwards;
+        }
+        .move-echo.blocked {
+            border-color: rgba(255, 40, 40, 0.9);
+            box-shadow: 0 0 18px rgba(255, 40, 40, 0.55);
+            animation-duration: 0.3s;
+        }
+        @keyframes moveEchoAnim {
+            0% { opacity: 0.95; transform: scale(0.45); }
+            100% { opacity: 0; transform: scale(1.35); }
+        }
+
+        .arena-walk-flash { animation: arenaWalkFlash 0.24s ease-out; }
+        @keyframes arenaWalkFlash {
+            0% { box-shadow: 0 0 100px rgba(179, 0, 0, 0.2); }
+            50% { box-shadow: 0 0 120px rgba(0, 180, 255, 0.45); }
+            100% { box-shadow: 0 0 100px rgba(179, 0, 0, 0.2); }
+        }
+
         .status-wrapper { display: flex; justify-content: center; gap: 40px; width: 1000px; }
         .status-container { width: 450px; text-align: left; }
         .bar-label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; font-weight: bold; color: #aaa; }
+        .move-tip { color: #6cc; font-size: 0.82rem; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; }
+        .ranking-panel {
+            width: min(780px, 90vw); margin-top: 20px; padding: 18px;
+            background: rgba(8, 8, 8, 0.96); border: 1px solid #252525;
+            box-shadow: 0 0 35px rgba(0, 0, 0, 0.4);
+        }
+        .ranking-panel.compact { width: min(520px, 90vw); }
+        .ranking-title {
+            color: var(--gold); font-size: 0.95rem; letter-spacing: 2px;
+            text-transform: uppercase; margin-bottom: 12px;
+        }
+        .ranking-list { display: flex; flex-direction: column; gap: 8px; }
+        .ranking-item {
+            display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 12px;
+            text-align: left; padding: 10px 12px; background: #0d0d0d; border: 1px solid #1f1f1f;
+        }
+        .ranking-item.current-player { border-color: var(--gold); box-shadow: 0 0 16px rgba(255, 215, 0, 0.16); }
+        .ranking-name { font-weight: bold; color: #f1f1f1; }
+        .ranking-score { color: #6cc; font-size: 0.88rem; text-transform: uppercase; }
+        .ranking-empty { color: #777; padding: 12px; border: 1px dashed #333; }
+        .ranking-place, .ranking-medal {
+            width: 34px; height: 34px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 0.92rem;
+        }
+        .ranking-place { background: #111; border: 1px solid #333; color: #999; }
+        .ranking-medal.gold { background: linear-gradient(135deg, #fff0a3, #ffd700, #a86f00); color: #2c1800; }
+        .ranking-medal.silver { background: linear-gradient(135deg, #ffffff, #c9ced6, #757c87); color: #1e242d; }
+        .ranking-medal.bronze { background: linear-gradient(135deg, #ffd7b8, #cd7f32, #6f3b13); color: #2b1507; }
         
         .bar-bg { 
             width: 100%; height: 22px; background: #000; border: 1px solid #333; 
@@ -276,6 +352,10 @@
 <div id="char-selection">
     <h1 style="font-size: 3rem; text-shadow: 0 0 20px var(--blood); color: var(--blood); margin-bottom: 5px;">QUAL É O SEU CORPO?</h1>
     <p style="color: #888; font-style: italic; max-width: 700px; margin-bottom: 20px;">Seu corpo é originalmente indescritivel, porém uma caracteristica que nós todos achamos bonito é a cor que cai do céu. O azul bonito daqueles olhos</p>
+    <div class="name-entry">
+        <label for="playerNameInput">Nome do jogador</label>
+        <input id="playerNameInput" maxlength="18" autocomplete="nickname" placeholder="Digite seu nome" onkeydown="if(event.key==='Enter') startGame()">
+    </div>
     <div class="portrait-container">
         <div class="portrait" id="port-jonathans" onclick="selectChar('jonathans')">
             <div class="portrait-img" style="background-image: url('image_0e6747.png'); background-color: #300;"></div>
@@ -296,6 +376,10 @@
     </div>
     <br><br>
     <button id="start-game-btn" onclick="startGame()" disabled style="font-size: 1.5rem; color: var(--gold); border-color: var(--gold);">INICIAR AS MISSÕES DE JERUSALÉM</button>
+    <div class="ranking-panel">
+        <div class="ranking-title">TOP 10 GLOBAL</div>
+        <div id="rankingList" class="ranking-list"></div>
+    </div>
 </div>
 
 <div id="sniper-auth">
@@ -312,16 +396,24 @@
 <div id="deathNormal" class="death-screen">
     <h1 id="deathTextNormal" style="font-size: 3rem; text-shadow: 0 0 20px #f00; padding: 20px;"></h1>
     <button onclick="location.reload()">REENTRAR NO CICLO</button>
+    <div class="ranking-panel compact">
+        <div class="ranking-title">TOP 10 GLOBAL</div>
+        <div id="deathRankingList" class="ranking-list"></div>
+    </div>
 </div>
 
 <div id="deathInsane" class="death-screen">
     <h1 id="deathTextInsane" style="font-size: 3rem; text-shadow: 0 0 40px #80f; padding: 20px;"></h1>
     <button onclick="location.reload()" style="font-size: 1.5rem; color: #80f; border-color: #80f;">RECUPERAR A MENTE</button>
+    <div class="ranking-panel compact">
+        <div class="ranking-title">TOP 10 GLOBAL</div>
+        <div id="deathRankingListAlt" class="ranking-list"></div>
+    </div>
 </div>
 
 <div id="game-container">
     <div class="hud-top">
-        <div>OURO: <span id="goldText" style="color:var(--gold)">0</span></div>
+        <div>REAIS: <span id="goldText" style="color:var(--gold)">0</span></div>
         <div>ABATES: <span id="killText" style="color:var(--blood)">0</span></div>
         <div>ÁREAS LIMPAS: <span id="clearedAreasText" style="color:#0ff">0</span></div>
         <div>DANO: <span id="totalDmgText" style="color:#0f0">0</span> (<span id="bonusText" style="color:var(--gold)">+0</span>)</div>
@@ -339,6 +431,7 @@
         <div style="background:#050505; padding:10px 30px; border:1px solid #333; color:#0ff; font-weight: bold;">PASSOS: <span id="moveText">4</span>/4</div>
         <div style="background:#050505; padding:10px 30px; border:1px solid #333; color:#0f0; font-weight: bold;">AÇÕES: <span id="actionText">1</span>/<span id="maxActionText">1</span></div>
     </div>
+    <div class="move-tip">WASD ou toque em um quadrado iluminado para se mover.</div>
 
     <div class="status-wrapper">
         <div class="status-container">
@@ -368,16 +461,16 @@
     <div class="panel">
         <button onclick="executeAction('ritual_sangue')" style="color:#b300ff; border-color:#80f;">RITUAL: SANGUE (1PE/95D/8Q)</button>
         <button onclick="executeAction('ritual_paralisia')" style="color:#b300ff; border-color:#80f;">RITUAL: SOMBRAS (1PE/1T)</button>
-        <button onclick="useItem('pocao')" style="color:#0f0;">USAR CURA (15g)</button>
+        <button onclick="useItem('pocao')" style="color:#0f0;">USAR CURA (R$15)</button>
     </div>
 
     <div class="panel">
         <strong style="width: 100%; color: var(--gold); font-size: 0.9rem; margin-bottom: 5px;">LOJA DO SENHOR JERUSALÉM 🦌</strong>
-        <button onclick="shop('bonus')">+8 Dano (25g)</button>
-        <button onclick="shop('pinga')">+30 Sanidade (10g)</button>
-        <button onclick="shop('action')">+1 Ação Max (40g)</button>
-        <button onclick="shop('energy')">+1 PE Max (30g)</button>
-        <button id="buyAmmoBtn" onclick="shop('ammo')" style="display:none; color:var(--ammo-color);">COMPRAR BALA (15g)</button>
+        <button onclick="shop('bonus')">+8 Dano (R$25)</button>
+        <button onclick="shop('pinga')">+30 Sanidade (R$10)</button>
+        <button onclick="shop('action')">+1 Ação Max (R$40)</button>
+        <button onclick="shop('energy')">+1 PE Max (R$30)</button>
+        <button id="buyAmmoBtn" onclick="shop('ammo')" style="display:none; color:var(--ammo-color);">COMPRAR BALA (R$15)</button>
     </div>
 
     <div id="log">A névoa se afasta... Jerusalém observa.</div>
@@ -400,6 +493,92 @@ let enemies = [];
 let obstacles = [];
 let sniperUnlocked = false;
 let smokeEffect = { active: false, x: 0, y: 0, duration: 0 };
+let hoveredPath = [];
+let isAutoMoving = false;
+let audioCtx = null;
+let currentPlayerName = "";
+
+const rankingStorageKey = "sete-alem-ranking-v1";
+const lastPlayerStorageKey = "sete-alem-last-player";
+
+function getSavedRanking() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(rankingStorageKey) || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveRanking(entries) {
+    try {
+        localStorage.setItem(rankingStorageKey, JSON.stringify(entries));
+    } catch {}
+}
+
+function escapeHtml(text) {
+    return text
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+}
+
+function getRankBadge(index) {
+    if(index === 0) return '<div class="ranking-medal gold">1</div>';
+    if(index === 1) return '<div class="ranking-medal silver">2</div>';
+    if(index === 2) return '<div class="ranking-medal bronze">3</div>';
+    return `<div class="ranking-place">${index + 1}</div>`;
+}
+
+function renderRanking(entries = getSavedRanking()) {
+    const containers = [
+        document.getElementById("rankingList"),
+        document.getElementById("deathRankingList"),
+        document.getElementById("deathRankingListAlt")
+    ].filter(Boolean);
+
+    const html = entries.length
+        ? entries.map((entry, index) => {
+            const entryName = String(entry.name || "Sem nome");
+            const entryAreas = Number.isFinite(Number(entry.areas)) ? Number(entry.areas) : 0;
+            const isCurrent = currentPlayerName && entryName.toLowerCase() === currentPlayerName.toLowerCase();
+            const safeName = escapeHtml(entryName);
+            return `<div class="ranking-item${isCurrent ? ' current-player' : ''}">
+                ${getRankBadge(index)}
+                <div>
+                    <div class="ranking-name">${safeName}</div>
+                    <div class="ranking-score">${entryAreas} areas</div>
+                </div>
+                <strong>#${index + 1}</strong>
+            </div>`;
+        }).join("")
+        : '<div class="ranking-empty">Nenhum sobrevivente registrado ainda.</div>';
+
+    containers.forEach(container => container.innerHTML = html);
+}
+
+function saveCurrentRankingProgress() {
+    if(!currentPlayerName) return;
+
+    let entries = getSavedRanking();
+    const existing = entries.find(entry => String(entry.name || "").toLowerCase() === currentPlayerName.toLowerCase());
+    if(existing) {
+        existing.name = currentPlayerName;
+        existing.areas = Math.max(Number(existing.areas) || 0, clearedAreas);
+        existing.updatedAt = Date.now();
+    } else {
+        entries.push({ name: currentPlayerName, areas: clearedAreas, updatedAt: Date.now() });
+    }
+
+    entries = entries
+        .sort((a, b) => ((Number(b.areas) || 0) - (Number(a.areas) || 0)) || ((a.updatedAt || 0) - (b.updatedAt || 0)))
+        .slice(0, 10);
+
+    saveRanking(entries);
+    renderRanking(entries);
+}
 
 function tryUnlockSamuel() {
     if(isSamuelUnlocked) { selectChar('samuel'); return; }
@@ -428,6 +607,17 @@ function selectChar(charId) {
 
 function startGame() {
     if(!player.selectedId) return;
+    const playerNameInput = document.getElementById('playerNameInput');
+    const chosenName = playerNameInput.value.trim();
+    if(!chosenName) {
+        triggerShakeSelection();
+        playerNameInput.focus();
+        return;
+    }
+    currentPlayerName = chosenName.slice(0, 18);
+    playerNameInput.value = currentPlayerName;
+    try { localStorage.setItem(lastPlayerStorageKey, currentPlayerName); } catch {}
+    renderRanking();
     const data = charData[player.selectedId];
     player = { ...player, ...data }; 
     document.getElementById('specialBtn').innerText = data.specialName;
@@ -443,6 +633,7 @@ function startGame() {
     spawnEnemies();
     draw();
     log(`Corpo de ${player.name} assumido. Jerusalem aguarda.`, "#aaa");
+    log("Movimento tatico ativo: WASD ou toque nos quadrados destacados.", "#6cc");
 }
 
 function triggerShakeSelection() {
@@ -482,7 +673,7 @@ function spawnEnemies() {
     for(let i=0; i<count; i++) {
         let e = { 
             maxHp: 80 * threatLevel, hp: 0, x: 0, y: 0, alive: true, paralyzed: false, 
-            flying: false, eye: false, laserReady: false, laserDir: null, baseDamage: 18, isBoss: false,
+            flying: false, eye: false, laserReady: false, laserDir: null, laserPath: [], baseDamage: 18, isBoss: false,
             impactReady: false, bossTarget: {x:0, y:0}, id: Math.random(), name: "Entidade"
         };
         if(isBossArea) {
@@ -528,6 +719,69 @@ function triggerShake() {
     game.classList.add("shake-active");
 }
 
+function ensureAudioContext() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if(!AudioContextClass) return null;
+    if(!audioCtx) audioCtx = new AudioContextClass();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+
+function playTone(freq, duration, type="triangle", volume=0.02, endFreq=freq) {
+    const ctx = ensureAudioContext();
+    if(!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.linearRampToValueAtTime(endFreq, now + duration);
+    gain.gain.setValueAtTime(volume, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + duration);
+}
+
+function playMoveSound(stepIndex = 0) {
+    playTone(220 + (stepIndex * 25), 0.08, "triangle", 0.018, 320 + (stepIndex * 12));
+}
+
+function playBlockedSound() {
+    playTone(110, 0.12, "sawtooth", 0.02, 70);
+}
+
+function playRewardSound(isBoss = false) {
+    playTone(isBoss ? 600 : 480, 0.08, "square", 0.02, isBoss ? 820 : 620);
+    setTimeout(() => playTone(isBoss ? 760 : 620, 0.09, "triangle", 0.012, isBoss ? 980 : 740), 70);
+}
+
+function playEnemyLaserSound(isCharge = false) {
+    if(isCharge) {
+        playTone(180, 0.16, "sawtooth", 0.016, 110);
+        return;
+    }
+    playTone(130, 0.18, "square", 0.026, 70);
+    setTimeout(() => playTone(90, 0.12, "sawtooth", 0.016, 50), 70);
+}
+
+function pulseArenaWalk() {
+    const arena = document.getElementById("arena");
+    arena.classList.remove("arena-walk-flash");
+    void arena.offsetWidth;
+    arena.classList.add("arena-walk-flash");
+}
+
+function spawnMoveEcho(x, y, blocked = false) {
+    const echo = document.createElement("div");
+    echo.className = blocked ? "move-echo blocked" : "move-echo";
+    echo.style.left = (x * 46) + "px";
+    echo.style.top = (y * 46) + "px";
+    document.getElementById("arena").appendChild(echo);
+    setTimeout(() => echo.remove(), blocked ? 300 : 450);
+}
+
 function playSlash(x, y) {
     const slash = document.createElement("div");
     slash.className = "slash-effect";
@@ -537,7 +791,7 @@ function playSlash(x, y) {
     setTimeout(() => slash.remove(), 200);
 }
 
-function playBeam(startX, startY, endX, endY) {
+function playBeam(startX, startY, endX, endY, color="yellow") {
     const beam = document.createElement("div");
     beam.className = "beam-effect";
     let x1 = startX * 46 + 22.5; let y1 = startY * 46 + 22.5;
@@ -548,6 +802,8 @@ function playBeam(startX, startY, endX, endY) {
     beam.style.width = length + "px";
     beam.style.left = x1 + "px";
     beam.style.top = y1 + "px";
+    beam.style.background = color;
+    beam.style.boxShadow = `0 0 10px ${color}`;
     beam.style.transform = `translateY(-50%) rotate(${angle}deg)`;
     
     document.getElementById("arena").appendChild(beam);
@@ -574,6 +830,177 @@ function spawnDamage(x, y, txt, col="white") {
 function isInsideSmoke(x, y) {
     if(!smokeEffect.active) return false;
     return x >= smokeEffect.x - 1 && x <= smokeEffect.x + 1 && y >= smokeEffect.y - 1 && y <= smokeEffect.y + 1;
+}
+
+function tileKey(x, y) {
+    return `${x},${y}`;
+}
+
+function canPlayerStandAt(x, y) {
+    if(x < 0 || x >= 12 || y < 0 || y >= 12) return false;
+    if(obstacles.find(o => o.x === x && o.y === y)) return false;
+    if(enemies.find(e => e.alive && e.x === x && e.y === y)) return false;
+    return true;
+}
+
+function buildWalkMap(maxSteps = player.moves) {
+    const visited = new Map();
+    const queue = [{ x: player.x, y: player.y, steps: 0 }];
+    visited.set(tileKey(player.x, player.y), { x: player.x, y: player.y, steps: 0, prev: null });
+
+    while(queue.length) {
+        const current = queue.shift();
+        if(current.steps >= maxSteps) continue;
+
+        [
+            { x: current.x + 1, y: current.y },
+            { x: current.x - 1, y: current.y },
+            { x: current.x, y: current.y + 1 },
+            { x: current.x, y: current.y - 1 }
+        ].forEach(next => {
+            const nextKey = tileKey(next.x, next.y);
+            if(visited.has(nextKey) || !canPlayerStandAt(next.x, next.y)) return;
+            visited.set(nextKey, { ...next, steps: current.steps + 1, prev: tileKey(current.x, current.y) });
+            queue.push({ ...next, steps: current.steps + 1 });
+        });
+    }
+
+    return visited;
+}
+
+function getPathToTile(targetX, targetY) {
+    const walkMap = buildWalkMap(player.moves);
+    const startKey = tileKey(player.x, player.y);
+    const targetKey = tileKey(targetX, targetY);
+
+    if(!walkMap.has(targetKey)) return null;
+
+    const path = [];
+    let currentKey = targetKey;
+    while(currentKey && currentKey !== startKey) {
+        const node = walkMap.get(currentKey);
+        if(!node) return null;
+        path.unshift({ x: node.x, y: node.y });
+        currentKey = node.prev;
+    }
+    return path;
+}
+
+function clearMovementPreview(redraw = true) {
+    hoveredPath = [];
+    if(redraw) draw();
+}
+
+function previewMovementPath(targetX, targetY) {
+    if(document.getElementById('char-selection').style.display !== 'none' || isAutoMoving) return;
+    const path = getPathToTile(targetX, targetY);
+    hoveredPath = path && path.length ? path : [];
+    draw();
+}
+
+function movePlayerOneTile(targetX, targetY) {
+    if(!canPlayerStandAt(targetX, targetY) || player.moves <= 0 || player.stunned) return false;
+    hoveredPath = [];
+    player.x = targetX;
+    player.y = targetY;
+    player.moves--;
+    checkInvisibility();
+    pulseArenaWalk();
+    spawnMoveEcho(targetX, targetY);
+    playMoveSound();
+    draw();
+    return true;
+}
+
+function movePlayerAlongPath(path) {
+    if(!path || !path.length || isAutoMoving) return false;
+    isAutoMoving = true;
+    hoveredPath = [];
+    let stepIndex = 0;
+
+    const walk = () => {
+        const step = path[stepIndex];
+        if(!step || player.moves <= 0) {
+            isAutoMoving = false;
+            draw();
+            return;
+        }
+
+        player.x = step.x;
+        player.y = step.y;
+        player.moves--;
+        checkInvisibility();
+        pulseArenaWalk();
+        spawnMoveEcho(step.x, step.y);
+        playMoveSound(stepIndex);
+        draw();
+
+        stepIndex++;
+        if(stepIndex < path.length && player.moves > 0) setTimeout(walk, 110);
+        else isAutoMoving = false;
+    };
+
+    walk();
+    return true;
+}
+
+function handleTileMovement(targetX, targetY) {
+    if(document.getElementById('char-selection').style.display !== 'none' || document.getElementById('sniper-auth').style.display === 'flex') return;
+    if(isAutoMoving) return;
+    if(targetX === player.x && targetY === player.y) return;
+
+    const path = getPathToTile(targetX, targetY);
+    if(player.moves <= 0 || player.stunned || !path || !path.length) {
+        triggerShake();
+        spawnMoveEcho(targetX, targetY, true);
+        playBlockedSound();
+        return;
+    }
+
+    movePlayerAlongPath(path);
+}
+
+function rollDice(times, sides) {
+    let total = 0;
+    for(let i = 0; i < times; i++) total += Math.floor(Math.random() * sides) + 1;
+    return total;
+}
+
+function getNicolasLaserPath(enemy) {
+    const dx = player.x - enemy.x;
+    const dy = player.y - enemy.y;
+    let stepX = 0;
+    let stepY = 0;
+    let distance = 0;
+
+    if(dx === 0 && dy !== 0) {
+        stepY = Math.sign(dy);
+        distance = Math.abs(dy);
+    } else if(dy === 0 && dx !== 0) {
+        stepX = Math.sign(dx);
+        distance = Math.abs(dx);
+    } else if(Math.abs(dx) === Math.abs(dy) && dx !== 0) {
+        stepX = Math.sign(dx);
+        stepY = Math.sign(dy);
+        distance = Math.abs(dx);
+    } else {
+        return null;
+    }
+
+    if(distance > 6) return null;
+
+    const path = [];
+    for(let step = 1; step <= 6; step++) {
+        const nextX = enemy.x + (stepX * step);
+        const nextY = enemy.y + (stepY * step);
+        if(nextX < 0 || nextX >= 12 || nextY < 0 || nextY >= 12) break;
+        path.push({ x: nextX, y: nextY });
+    }
+    return path.length ? path : null;
+}
+
+function playerIsOnLaserPath(path) {
+    return path.some(tile => tile.x === player.x && tile.y === player.y);
 }
 
 function getTarget() {
@@ -630,6 +1057,8 @@ function updateUI() {
 
 function draw() {
     const arena = document.getElementById("arena");
+    const walkMap = buildWalkMap(player.moves);
+    const previewKeys = new Set(hoveredPath.map(step => tileKey(step.x, step.y)));
     
     if (!document.getElementById("grid-initialized")) {
         arena.innerHTML = "<div id='grid-initialized' style='display:none;'></div>";
@@ -638,6 +1067,9 @@ function draw() {
                 const t = document.createElement("div");
                 t.className = "tile";
                 t.id = `tile-${x}-${y}`;
+                t.addEventListener('click', () => handleTileMovement(x, y));
+                t.addEventListener('mouseenter', () => previewMovementPath(x, y));
+                t.addEventListener('mouseleave', () => clearMovementPreview());
                 arena.appendChild(t);
             }
         }
@@ -649,16 +1081,15 @@ function draw() {
             t.className = "tile";
             t.innerText = "";
             t.style.boxShadow = "";
+            if(walkMap.has(tileKey(x, y)) && (x !== player.x || y !== player.y)) t.classList.add('reachable-tile');
+            if(previewKeys.has(tileKey(x, y))) t.classList.add('path-tile');
 
             const obs = obstacles.find(o => o.x === x && o.y === y);
             if(isInsideSmoke(x, y)) t.classList.add('smoke-area');
             
             enemies.forEach(e => {
-                if(e.alive && e.laserReady && e.laserDir) {
-                    let inPath = false;
-                    if(e.laserDir === 'H' && y === e.y && Math.abs(x - e.x) <= 5) inPath = true;
-                    if(e.laserDir === 'V' && x === e.x && Math.abs(y - e.y) <= 5) inPath = true;
-                    if(inPath && (x !== e.x || y !== e.y)) t.classList.add('laser-warning');
+                if(e.alive && e.laserReady && e.laserPath && e.laserPath.length) {
+                    if(e.laserPath.some(tile => tile.x === x && tile.y === y)) t.classList.add('laser-warning');
                 }
                 if(e.alive && e.isBoss && e.impactReady) {
                     if(x >= e.bossTarget.x - 1 && x <= e.bossTarget.x + 1 && y >= e.bossTarget.y - 1 && y <= e.bossTarget.y + 1) t.classList.add('laser-warning');
@@ -726,6 +1157,7 @@ function draw() {
 }
 
 function executeAction(type) {
+    if(isAutoMoving) return log("Aguarde o deslocamento terminar.", "#aaa");
     if(player.actions <= 0 && type !== 'sniper') return log("Fadiga extrema...", "#f44");
     let target = enemies.find(e => e.alive && Math.abs(player.x-e.x)<=1 && Math.abs(player.y-e.y)<=1);
     let d = 0; let consumeAction = true;
@@ -804,13 +1236,21 @@ function executeAction(type) {
 
     enemies.forEach(e => {
         if(e.hp <= 0 && e.alive) {
-            e.alive = false; player.kills++; player.gold += (e.isBoss ? 150*threatLevel : 30*threatLevel);
+            const reward = e.isBoss ? 50 : 15;
+            e.alive = false;
+            player.kills++;
+            player.gold += reward;
+            spawnDamage(e.x, e.y, `+R$${reward}`, "#ffd700");
+            playRewardSound(e.isBoss);
+            log(e.isBoss ? "Jerusalem entrega R$50 pela queda do boss." : "R$15 recolhidos do inimigo abatido.", "var(--gold)");
             if(e.isBoss) { threatLevel++; triggerShake(); log(`Ameaça Nível ${threatLevel}`, "var(--gold)"); }
         }
     });
 
     if(!enemies.find(e => e.alive)) { 
-        clearedAreas++; log(`ÁREA ${clearedAreas} LIMPA!`, "#0ff");
+        clearedAreas++;
+        saveCurrentRankingProgress();
+        log(`ÁREA ${clearedAreas} LIMPA!`, "#0ff");
         setTimeout(() => { generateTerrain(); spawnEnemies(); draw(); }, 1000); 
     }
     if(player.sanity <= 0) triggerDeath('sanity');
@@ -833,6 +1273,7 @@ function useItem(item) {
 function checkInvisibility() { player.invisible = (player.selectedId === 'juliano' && isInsideSmoke(player.x, player.y)); }
 
 function endTurn() {
+    if(isAutoMoving) return log("Aguarde o deslocamento terminar.", "#aaa");
     if(smokeEffect.active) { smokeEffect.duration--; if(smokeEffect.duration <= 0) smokeEffect.active = false; }
     enemies.forEach(e => {
         if(!e.alive || e.paralyzed) { if(e.paralyzed) e.paralyzed=false; return; }
@@ -848,6 +1289,37 @@ function endTurn() {
 
         // BOSS IGNORA INVISIBILIDADE DO JULIANO
         if(player.invisible && !e.isBoss) return; 
+
+        if(e.eye) {
+            if(e.laserReady && e.laserPath && e.laserPath.length) {
+                const lastTile = e.laserPath[e.laserPath.length - 1];
+                playEnemyLaserSound();
+                playBeam(e.x, e.y, lastTile.x, lastTile.y, "#ff3030");
+                triggerEntityShake(e);
+                if(playerIsOnLaserPath(e.laserPath)) {
+                    const laserDamage = rollDice(4, 20);
+                    player.hp -= laserDamage;
+                    spawnDamage(player.x, player.y, "-" + laserDamage, "#ff3030");
+                    triggerShake();
+                    log("Nicolas descarrega um laser vermelho!", "#ff5050");
+                } else {
+                    log("Nicolas descarrega o laser, mas voce escapa.", "#ff8080");
+                }
+                e.laserReady = false;
+                e.laserPath = [];
+                return;
+            }
+
+            const laserPath = getNicolasLaserPath(e);
+            if(laserPath) {
+                e.laserReady = true;
+                e.laserPath = laserPath;
+                playEnemyLaserSound(true);
+                spawnMoveEcho(e.x, e.y, true);
+                log("Nicolas trava um laser vermelho na sua direcao!", "#ff5050");
+                return;
+            }
+        }
 
         if(e.isBoss) {
             if(e.impactReady) {
@@ -904,20 +1376,34 @@ function shop(item) {
 }
 
 function triggerDeath(type) {
+    isAutoMoving = false;
+    saveCurrentRankingProgress();
     document.getElementById(type==='hp'?'deathNormal':'deathInsane').style.display='flex';
     document.getElementById(type==='hp'?'deathTextNormal':'deathTextInsane').innerText = (type==='hp'?"Ciclo Reiniciado.":"A mente quebrou.");
 }
 
+try {
+    const lastPlayerName = localStorage.getItem(lastPlayerStorageKey);
+    if(lastPlayerName) {
+        currentPlayerName = lastPlayerName;
+        document.getElementById('playerNameInput').value = lastPlayerName;
+    }
+} catch {}
+
+renderRanking();
+
 window.addEventListener('keydown', (e) => {
     if(document.getElementById('char-selection').style.display !== 'none' || document.getElementById('sniper-auth').style.display === 'flex') return;
-    if(player.moves <= 0 || player.stunned) return;
+    if(player.moves <= 0 || player.stunned || isAutoMoving) return;
     let nX = player.x, nY = player.y, m = false;
     const k = e.key.toLowerCase();
     if(k==="w") { nY--; m=true; } if(k==="s") { nY++; m=true; } if(k==="a") { nX--; m=true; } if(k==="d") { nX++; m=true; }
     if(m && nX>=0 && nX<12 && nY>=0 && nY<12) {
-        if(!obstacles.find(o=>o.x===nX && o.y===nY) && !enemies.find(en => en.alive && en.x === nX && en.y === nY)) {
-            player.x = nX; player.y = nY; player.moves--; checkInvisibility(); draw();
-        } else triggerShake();
+        if(!movePlayerOneTile(nX, nY)) {
+            triggerShake();
+            spawnMoveEcho(nX, nY, true);
+            playBlockedSound();
+        }
     }
 });
 </script>
